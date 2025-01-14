@@ -9,8 +9,6 @@
 char http_response[2048];  // Buffering for HTTP responsev
 const char *button_state = "Button is not pressioned";
 const char *last_state = "Button is not pressioned";
-static struct tcp_pcb *global_tpcb = NULL;  // Global variable to store TCP connection control
-
 
 // Buffering for HTTP responses
 #define HTTP_RESPONSE "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nRefresh: 1\r\n\r\n" \
@@ -75,10 +73,37 @@ static err_t http_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_
     return ERR_OK;
 }
 
+static err_t update_server(void *arg, struct tcp_pcb *tpcb){
+    
+    if (!gpio_get(BUTTON_A_PIN))
+        button_state = "1";
+        //button_state = "Button is pressioned"; 
+    else
+        button_state = "0";
+        //button_state = "Button is not pressioned"; 
+
+    // Replace %s in HTTP_RESPONSE
+    snprintf(http_response, sizeof(http_response), HTTP_RESPONSE, button_state);
+
+    // Send the answer
+    err_t write_err = tcp_write(tpcb, http_response, strlen(http_response), TCP_WRITE_FLAG_COPY);
+    if (write_err != ERR_OK) {
+        printf("Error sending HTTP response: %d\n", write_err);
+        return write_err;
+    }
+
+    tcp_output(tpcb);  // Make sure data is sent
+
+    // Close the connection
+    tcp_close(tpcb);
+
+    return ERR_OK;
+}
+
 // Connection callback: associates the http_callback with the connection
 static err_t connection_callback(void *arg, struct tcp_pcb *newpcb, err_t err) {
-    global_tpcb = newpcb;  // Stores the tpcb of the new connection
     tcp_recv(newpcb, http_callback);  // Associates the HTTP callback
+    tcp_poll(newpcb, update_server, 100);
     return ERR_OK;
 }
 
@@ -102,27 +127,6 @@ static void start_http_server(void) {
     tcp_accept(pcb, connection_callback);  // Associates the connection callback
 
     printf("HTTP server running on port 80...\n");
-}
-
-// Proposal to force the server to refresh the page
-static err_t update_server(struct tcp_pcb *tpcb, err_t err) {
-    // Replace %s in HTTP_RESPONSE
-    snprintf(http_response, sizeof(http_response), HTTP_RESPONSE, button_state);
-
-    // Send the answer
-    err_t write_err = tcp_write(tpcb, http_response, strlen(http_response), TCP_WRITE_FLAG_COPY);
-    if (write_err != ERR_OK) {
-        printf("Error sending HTTP response: %d\n", write_err);
-        return write_err;
-    }
-
-    tcp_output(tpcb);  // Make sure data is sent
-
-    // Close the connection
-    tcp_close(tpcb);
-    global_tpcb = NULL;  // Clear the global variable
-
-    return ERR_OK;
 }
 
 #endif 
