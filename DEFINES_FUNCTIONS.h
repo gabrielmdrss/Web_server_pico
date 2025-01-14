@@ -103,7 +103,7 @@ static err_t update_server(void *arg, struct tcp_pcb *tpcb){
 // Connection callback: associates the http_callback with the connection
 static err_t connection_callback(void *arg, struct tcp_pcb *newpcb, err_t err) {
     tcp_recv(newpcb, http_callback);  // Associates the HTTP callback
-    tcp_poll(newpcb, update_server, 100);
+    //tcp_poll(newpcb, update_server, 100);
     return ERR_OK;
 }
 

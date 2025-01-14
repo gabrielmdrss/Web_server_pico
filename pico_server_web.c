@@ -54,12 +54,6 @@ int main() {
             button_state = "0";
             //button_state = "Button is not pressioned"; 
 
-        // if (button_state != last_state) {
-        //      if (global_tpcb != NULL) 
-        //          update_server(global_tpcb, ERR_OK);  // Passing the global tpcb
-        //     last_state = button_state;  // Update the previous state
-        // }
-
         cyw43_arch_poll();  // Required to keep Wi-Fi active
         sleep_ms(100);
     }
